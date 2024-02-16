@@ -1,0 +1,73 @@
+resource "snowflake_procedure" "DW_HAH_GET_STAGE_SANDATAIMPORT_DIM_INVOICE_TRANSACTION_TYPE" {
+	name ="GET_STAGE_SANDATAIMPORT_DIM_INVOICE_TRANSACTION_TYPE"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "HAH"
+	language  = "SQL"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_START"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_END"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+BEGIN
+--*****************************************************************************************************************************
+-- NAME:  SANDATAIMPORT_DIM_INVOICE_TRANSACTION_TYPE
+--
+-- DEVELOPMENT LOG:
+-- DATE         AUTHOR              NOTES:
+-- --------     ------------------- -----------------------------------------------------------------------------------------------
+-- 01/01/23 	PINKAL PANCHAL 		Initial development
+-- 01/01/23     MUHAMMAD ZOROB      SWAPPED PAYMENT HEADER FOR PAYMENT DETAILS
+--*****************************************************************************************************************************
+--
+INSERT OVERWRITE INTO STAGE.SANDATAIMPORT_DIM_INVOICE_TRANSACTION_TYPE
+SELECT DISTINCT
+MD5(''SANDATAIMPORT'' || ''-'' || NVL(PAYMENTCODE ::STRING,''Unknown'') || ''-'' || ''SANDATAIMPORT'') AS TRANSACTION_TYPE_KEY,
+--MD5(''SANDATAIMPORT'' || ''-'' || NVL(TYPE::STRING,''Unknown'') || ''-'' || ''SANDATAIMPORT'') AS PARENT_TRANSACTION_TYPE_KEY,
+NULL AS PARENT_TRANSACTION_TYPE_KEY,
+PAYMENTCODE AS TRANSACTION_CODE,
+CASE WHEN PAYMENTCODE =''CNCL'' THEN ''CANCEL''
+	 WHEN PAYMENTCODE =''CHK'' THEN  ''CHEQUE''
+	 WHEN PAYMENTCODE = ''CSH'' THEN  ''CASH''
+	 WHEN PAYMENTCODE = ''ACSH'' THEN  ''ACCOUNT CASH''
+	 WHEN PAYMENTCODE = ''ADV'' THEN ''ADVANCE''
+	 WHEN PAYMENTCODE = ''WO''  THEN ''WRITEOFF''
+	 WHEN PAYMENTCODE = ''ADJ''  THEN ''ADJUSTMENT''
+	 WHEN PAYMENTCODE = ''VOID''  THEN ''VOID''
+	 WHEN PAYMENTCODE = ''TB''  THEN ''TAKEBACK''
+	 WHEN PAYMENTCODE = ''TWO''  THEN ''TRANSAFERRED TO''
+	 WHEN PAYMENTCODE = ''RRA''  THEN ''RETRO RATE ADJUSTMENT''
+	 --WHEN PAYMENTCODE = ''REF''  THEN ''REF''
+	 ELSE PAYMENTCODE END AS TRANSACTION_NAME,
+NULL  AS TRANSACTION_DESC,
+AGENCYID::STRING AS SYSTEM_CODE,
+4 AS SOURCE_SYSTEM_ID
+,:STR_ETL_TASK_KEY AS ETL_TASK_KEY
+,:STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY
+,convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE
+,CURRENT_USER as ETL_INSERTED_BY
+,convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE
+,CURRENT_USER as ETL_LAST_UPDATED_BY
+,0 as ETL_DELETED_FLAG
+FROM DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_PAYMENTDETAILS_20231117
+WHERE AGENCYID =''8485''
+;
+RETURN ''SUCCESS'';
+END;
+
+ EOT
+}
+

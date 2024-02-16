@@ -1,0 +1,377 @@
+resource "snowflake_procedure" "DISC_DATA_CLEANSING_GET_PARADOX_SRC_EMPLOYEE" {
+	name ="GET_PARADOX_SRC_EMPLOYEE"
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "DATA_CLEANSING"
+	language  = "SQL"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+DECLARE
+    return_result VARCHAR;
+BEGIN
+    --*****************************************************************************************************************************
+-- NAME: PARADOX_Employee
+--
+-- PURPOSE: Creates script for data cleanse for PARADOX source
+--
+-- DEVELOPMENT LOG:
+-- DATE        AUTHOR                NOTES:
+-- --------    -------------------   -----------------------------------------------------------------------------------------------
+-- 08/07/23     Darshan Gosai           Initial development
+--*****************************************************************************************************************************
+--
+
+MERGE INTO DISC_${var.SF_ENVIRONMENT}.DATA_CLEANSING.EMPLOYEE_SRC_ATTRIBUTES AS tgt
+USING
+(
+	WITH source_Employee_addresses
+	AS
+	(	
+		WITH CANDIDATE_FORM AS 
+			(
+				SELECT 
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID, 					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME PERSONAL_INFORMATION__YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE PERSONAL_INFORMATION__ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY PERSONAL_INFORMATION__CITY,
+					A.PERSONAL_INFORMATION_STATE PERSONAL_INFORMATION__STATE,
+					A.PERSONAL_INFORMATION_SOCIAL_SECURITY_NUMBER PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,	
+					A.PERSONAL_INFORMATION_PHONE_NUMBER MOBILE_PHONE,
+					COALESCE(A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_HOME_PHONE_NUMBER) HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_PA A
+				UNION
+				SELECT
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID,					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY,
+					A.PERSONAL_INFORMATION_STATE,
+					NULL PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,	
+					COALESCE(PERSONAL_INFORMATION_CELL_PHONE_NUMBER, PERSONAL_INFORMATION_ALTERNATE_PHONE_NUMBER) MOBILE_PHONE,
+					COALESCE(PERSONAL_INFORMATION_EMERGENCY_CONTACT_PHONE_NUMBER, PERSONAL_INFORMATION_EMERGENCY_CONTACT_ALTERNATE_PHONE_NUMBER) HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_GA A
+				UNION
+				SELECT
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID, 					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME PERSONAL_INFORMATION__YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE PERSONAL_INFORMATION__ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY PERSONAL_INFORMATION__CITY,
+					A.PERSONAL_INFORMATION_STATE PERSONAL_INFORMATION__STATE,
+					NULL PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,
+					A.PERSONAL_INFORMATION_PHONE_NUMBER MOBILE_PHONE,
+					COALESCE(A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_PHONE_NUMBER, A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_ALTERNATE_PHONE_NUMBER) HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_MO A
+				UNION
+				SELECT
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID, 					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME PERSONAL_INFORMATION__YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE PERSONAL_INFORMATION__ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY PERSONAL_INFORMATION__CITY,
+					A.PERSONAL_INFORMATION_STATE PERSONAL_INFORMATION__STATE,
+					NULL PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,	
+					A.PERSONAL_INFORMATION_PHONE_NUMBER MOBILE_PHONE,
+					COALESCE(A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_HOME_PHONE_NUMBER) HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_OH A
+				UNION
+				SELECT
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID, 					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME PERSONAL_INFORMATION__YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE PERSONAL_INFORMATION__ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY PERSONAL_INFORMATION__CITY,
+					A.PERSONAL_INFORMATION_STATE PERSONAL_INFORMATION__STATE,
+					NULL PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,	
+					A.PERSONAL_INFORMATION_PHONE_NUMBER MOBILE_PHONE,
+					A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_PHONE_NUMBER HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_IN_ADAPTIVE A
+				UNION
+				SELECT
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID, 					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME PERSONAL_INFORMATION__YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE PERSONAL_INFORMATION__ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY PERSONAL_INFORMATION__CITY,
+					A.PERSONAL_INFORMATION_STATE PERSONAL_INFORMATION__STATE,
+					NULL PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,		
+					A.PERSONAL_INFORMATION_PHONE_NUMBER MOBILE_PHONE,
+					A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_PHONE_NUMBER HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_IN A
+				UNION
+				SELECT
+					A.CANDIDATE_ID, 
+					A.PROFILE_ID, 					 
+					A.PERSONAL_INFORMATION_YOUR_FULL_NAME PERSONAL_INFORMATION__YOUR_FULL_NAME, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_1 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, 
+					A.PERSONAL_INFORMATION_STREET_ADDRESS_LINE_2 PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, 
+					A.PERSONAL_INFORMATION_ZIP_CODE PERSONAL_INFORMATION__ZIP_CODE, 
+					A.PERSONAL_INFORMATION_CITY PERSONAL_INFORMATION__CITY,
+					A.PERSONAL_INFORMATION_STATE PERSONAL_INFORMATION__STATE,
+					NULL PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,
+					A.PERSONAL_INFORMATION_PHONE_NUMBER MOBILE_PHONE,
+					A.PERSONAL_INFORMATION_EMERGENCY_CONTACT_PHONE_NUMBER HOME_PHONE
+				FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_FORM_AL A
+			),
+			UNIQUE_APPLICANTS AS 
+			(
+			SELECT
+				PROFILE_ID, CANDIDATE_ID, CAPTURE_START_DATE, CURRENT_CANDIDATE_JOURNEY_STATUS,
+				ROW_NUMBER() OVER 
+						(PARTITION BY PROFILE_ID ORDER BY CASE WHEN CURRENT_CANDIDATE_JOURNEY_STATUS IN (''Hire: Hired'', ''Orientation/ Hired: Hired'') 
+							THEN 1 ELSE 0 END DESC,CAPTURE_START_DATE DESC ) RANK
+			FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_SPECIFIC
+			QUALIFY RANK = 1
+			)
+		SELECT
+			12 AS SOURCE_SYSTEM_ID,
+			''PARADOX'' AS SYSTEM_CODE,
+			A.CANDIDATE_LAST_NAME as Employee_Last_Name,
+			A.CANDIDATE_FIRST_NAME as Employee_First_Name,
+			TRIM( CAST(A.PROFILE_ID AS VARCHAR)) AS EMployee_ID,
+			CASE 
+			WHEN TRIM(REGEXP_REPLACE(A.SSN,''\\\\-|\\\\(|\\\\)|\\\\ '','''')) NOT IN (SELECT SSN FROM Data_Management.Data_Quality.Invalid_SSN) 
+				AND TRIM(REGEXP_REPLACE(A.SSN,''\\\\-|\\\\(|\\\\)|\\\\ '','''')) NOT LIKE ''00000%'' AND LENGTH(TRIM(REGEXP_REPLACE(A.SSN,''\\\\-|\\\\(|\\\\)|\\\\ '','''')))=9 
+				THEN HEX_ENCODE(TRIM(REGEXP_REPLACE(A.SSN,''\\\\-|\\\\(|\\\\)|\\\\ '',''''))) 
+			WHEN TRIM(REGEXP_REPLACE(F.PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,''\\\\-|\\\\(|\\\\)|\\\\ '','''')) NOT IN (SELECT SSN FROM Data_Management.Data_Quality.Invalid_SSN) 
+				AND TRIM(REGEXP_REPLACE(F.PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,''\\\\-|\\\\(|\\\\)|\\\\ '','''')) NOT LIKE ''00000%'' AND LENGTH(TRIM(REGEXP_REPLACE(F.PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,''\\\\-|\\\\(|\\\\)|\\\\ '','''')))=9 
+				THEN HEX_ENCODE(TRIM(REGEXP_REPLACE(F.PERSONAL_INFORMATION__SOCIAL_SECURITY_NUMBER,''\\\\-|\\\\(|\\\\)|\\\\ '',''''))) 
+			ELSE NULL 
+			END AS Src_Employee_SSN,
+			A.CANDIDATE_EMAIL as Src_Employee_Personal_Email ,
+			NULL AS Src_Employee_Work_Email,
+			CASE         
+			WHEN 
+				TRIM(REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND A.CANDIDATE_PHONE NOT LIKE ''%0000000%'' 
+					AND LENGTH( TRIM( REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'',''''))) = 10 
+				THEN ''1'' || TRIM( REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'',''''))
+			WHEN 
+				TRIM(REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND A.CANDIDATE_PHONE NOT LIKE ''%0000000%'' 
+					AND TRIM( REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'','''')) LIKE ''1%'' AND LENGTH( TRIM( REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'',''''))) = 11 
+				THEN TRIM( REGEXP_REPLACE(A.CANDIDATE_PHONE,''[^0-9]'',''''))
+			-- A.PHONE_NUMBER
+			WHEN 
+				TRIM(REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND  A.PHONE_NUMBER NOT LIKE ''%0000000%'' 
+					AND LENGTH( TRIM( REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'',''''))) = 10 
+				THEN ''1'' || TRIM( REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'',''''))
+			WHEN 
+				TRIM(REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND A.PHONE_NUMBER NOT LIKE ''%0000000%'' 
+					AND TRIM( REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'','''')) LIKE ''1%'' AND LENGTH( TRIM( REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'',''''))) = 11 
+				THEN TRIM( REGEXP_REPLACE( A.PHONE_NUMBER,''[^0-9]'',''''))
+			-- F.MOBILE_PHONE
+			WHEN 
+				TRIM(REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND  F.MOBILE_PHONE NOT LIKE ''%0000000%'' 
+					AND LENGTH( TRIM( REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'',''''))) = 10 
+				THEN ''1'' || TRIM( REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'',''''))
+			WHEN 
+				TRIM(REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND F.MOBILE_PHONE NOT LIKE ''%0000000%'' 
+					AND TRIM( REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'','''')) LIKE ''1%'' AND LENGTH( TRIM( REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'',''''))) = 11 
+				THEN TRIM( REGEXP_REPLACE( F.MOBILE_PHONE,''[^0-9]'',''''))
+			END as Src_Employee_Cell_Phone,    
+			CASE 			
+			WHEN 
+				TRIM(REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER) NOT LIKE ''%0000000%'' 
+					AND LENGTH( TRIM( REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'',''''))) = 10 
+				THEN ''1'' || TRIM( REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'',''''))
+			WHEN 
+				TRIM(REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER) NOT LIKE ''%0000000%'' 
+					AND TRIM( REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'','''')) LIKE ''1%'' AND LENGTH( TRIM( REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'',''''))) = 11 
+				THEN TRIM( REGEXP_REPLACE(COALESCE(GA_ADMIN.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_ADMIN.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_PRIMARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER, GA_DIRECT_CARE.EMERGENCY_CONTACT_SECONDARY_EMERGENCY_CONTACT_CELL_PHONE_NUMBER),''[^0-9]'',''''))
+			-- PHONE FROM CANDIDATE FORM
+			WHEN 
+				TRIM(REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND  F.HOME_PHONE NOT LIKE ''%0000000%'' 
+					AND LENGTH( TRIM( REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'',''''))) = 10 
+				THEN ''1'' || TRIM( REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'',''''))
+			WHEN 
+				TRIM(REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'','''')) 
+					NOT IN (SELECT Phone_Number FROM Data_Management.Data_Quality.Invalid_Phone_Number) 
+					AND F.HOME_PHONE NOT LIKE ''%0000000%'' 
+					AND TRIM( REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'','''')) LIKE ''1%'' AND LENGTH( TRIM( REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'',''''))) = 11 
+				THEN TRIM( REGEXP_REPLACE( F.HOME_PHONE,''[^0-9]'',''''))
+			END AS Src_Employee_Home_Phone,
+			NULL AS Src_Employee_DOB,
+			NULL as Src_Employee_Work_Phone,
+			COALESCE(GA_ADMIN.EMERGENCY_CONTACT_STREET_ADDRESS_LINE_1, GA_DIRECT_CARE.EMERGENCY_CONTACT_STREET_ADDRESS_LINE_1, F.PERSONAL_INFORMATION__STREET_ADDRESS_LINE_1, A.STREET_ADDRESS) as Src_Employee_Address ,
+			COALESCE(GA_ADMIN.EMERGENCY_CONTACT_STREET_ADDRESS_LINE_2, GA_DIRECT_CARE.EMERGENCY_CONTACT_STREET_ADDRESS_LINE_2, F.PERSONAL_INFORMATION__STREET_ADDRESS_LINE_2, A.STREET_ADDRESS_LINE_2) as Src_Employee_Address_LINE_2 ,
+			COALESCE(GA_ADMIN.EMERGENCY_CONTACT_CITY, GA_DIRECT_CARE.EMERGENCY_CONTACT_CITY, F.PERSONAL_INFORMATION__CITY) as Src_Employee_City ,
+			COALESCE(GA_ADMIN.EMERGENCY_CONTACT_STATE, GA_DIRECT_CARE.EMERGENCY_CONTACT_STATE, F.PERSONAL_INFORMATION__STATE) as STATE ,
+			G.STATE_ISO_CODE as Src_Employee_State_Code ,
+			COALESCE(GA_ADMIN.EMERGENCY_CONTACT_ZIP_CODE, GA_DIRECT_CARE.EMERGENCY_CONTACT_ZIP_CODE, F.PERSONAL_INFORMATION__ZIP_CODE, A.ZIP_CODE) as Src_Employee_Zip ,
+			MIN( IFNULL(CAST( A.CAPTURE_START_DATE  AS DATE), CAST( ''2040-12-31'' AS DATE))) AS Src_Employee_Min_Activity_Date,
+			MAX( IFNULL( CAST(A.CAPTURE_START_DATE  AS DATE), CAST( ''1900-01-01'' AS DATE))) AS Src_Employee_Max_Activity_Date,
+			CAST( FALSE AS BOOLEAN) AS SRC_Employee_Address_Processed_Flag,
+			CAST( FALSE AS BOOLEAN) AS SRC_Employee_Address_Successfully_Cleansed_Flag
+    	FROM DISC_${var.SF_ENVIRONMENT}.PARADOX.CANDIDATE_SPECIFIC A
+		INNER JOIN UNIQUE_APPLICANTS B ON A.CANDIDATE_ID = B.CANDIDATE_ID
+		LEFT JOIN CANDIDATE_FORM F ON F.CANDIDATE_ID = A.CANDIDATE_ID
+		LEFT JOIN DISC_${var.SF_ENVIRONMENT}.PARADOX.GA_ONBOARDING_ADMIN GA_ADMIN ON A.CANDIDATE_ID = GA_ADMIN.CANDIDATE_ID
+		LEFT JOIN DISC_${var.SF_ENVIRONMENT}.PARADOX.GA_ONBOARDING_DIRECT_CARE GA_DIRECT_CARE ON A.CANDIDATE_ID = GA_DIRECT_CARE.CANDIDATE_ID
+		LEFT JOIN DW_${var.SF_ENVIRONMENT}.HAH.DIM_GEOGRAPHY G ON COALESCE(GA_ADMIN.EMERGENCY_CONTACT_ZIP_CODE, GA_DIRECT_CARE.EMERGENCY_CONTACT_ZIP_CODE, F.PERSONAL_INFORMATION__ZIP_CODE, A.ZIP_CODE) = G.ZIP_CODE
+		WHERE A.PROFILE_ID IS NOT NULL
+		GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+	)
+	SELECT 
+	 Source_System_ID 
+	,System_Code
+	,Employee_ID
+	,Employee_First_Name 
+	,Employee_Last_Name 
+	,CASE 
+		WHEN TRIM( dca.Src_Employee_Address) = ''NONE'' AND TRIM(dca.Src_Employee_Address_LINE_2) = ''NONE'' THEN ''''
+		WHEN TRIM( dca.Src_Employee_Address) = ''NONE'' THEN UPPER(TRIM(IFNULL( TRIM(dca.Src_Employee_Address_LINE_2), '''')))
+		WHEN TRIM(dca.Src_Employee_Address_LINE_2) = ''NONE'' THEN UPPER(TRIM(IFNULL( TRIM(dca.Src_Employee_Address), '''')))
+		ELSE UPPER( TRIM( IFNULL( TRIM( dca.Src_Employee_Address) , '''') ||'' ''|| IFNULL( TRIM(dca.Src_Employee_Address_LINE_2), '''')))
+	END AS SRC_Employee_ADDRESS	
+	--,UPPER(TRIM(IFNULL( TRIM(dca.Src_Employee_Address_LINE_2), ''''))) as  Src_Employee_Address
+	,TRIM( dca.Src_Employee_City) Src_Employee_City
+	,TRIM( dca.Src_Employee_State_Code) Src_Employee_State_Code
+	,TRIM( dca.Src_Employee_Zip) Src_Employee_Zip
+	,NULL AS  Src_Employee_Zip4
+	,TRIM( dca.Src_Employee_SSN) Src_Employee_SSN
+	,dca.Src_Employee_DOB
+	,TRIM( dca.Src_Employee_Home_Phone) Src_Employee_Home_Phone
+	,TRIM( dca.Src_Employee_Cell_Phone) Src_Employee_Cell_Phone
+	,TRIM( dca.Src_Employee_Work_Phone) Src_Employee_Work_Phone 
+	,TRIM( dca.Src_Employee_Personal_Email) Src_Employee_Personal_Email
+	,TRIM( dca.Src_Employee_Work_Email) Src_Employee_Work_Email
+	,SRC_Employee_Min_Activity_Date
+	,SRC_Employee_Max_Activity_Date
+	,SRC_Employee_Address_Processed_Flag
+	,Src_Employee_Address_Successfully_Cleansed_Flag
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_DOB_Successfully_Cleansed_Flag
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_SSN_Successfully_Cleansed_Flag 
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_Home_Phone_Successfully_Cleansed_Flag 
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_Cell_Phone_Successfully_Cleansed_Flag 
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_Work_Phone_Successfully_Cleansed_Flag 
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_Personal_Email_Successfully_Cleansed_Flag 
+	,CAST( FALSE AS BOOLEAN) AS Src_Employee_Work_Email_Successfully_Cleansed_Flag
+	,:STR_ETL_TASK_KEY AS ETL_TASK_KEY
+	,:STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY
+	,convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE
+	,CURRENT_USER as ETL_INSERTED_BY 
+	,convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_LAST_UPDATED_DATE
+	,CURRENT_USER as ETL_LAST_UPDATED_BY
+   FROM source_Employee_addresses AS dca
+   ORDER BY 1
+)
+ AS src
+ON src.Source_System_ID = tgt.Source_System_ID
+AND src.System_Code = tgt.System_Code
+AND src.Employee_ID = tgt.Employee_ID
+WHEN MATCHED AND (IFNULL( src.Employee_First_Name, ''~!@#$%^&*()+'') <> IFNULL( tgt.Employee_First_Name, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Employee_Last_Name, ''~!@#$%^&*()+'') <> IFNULL( tgt.Employee_Last_Name, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_SSN, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_SSN, ''~!@#$%^&*()+'')
+              OR  IFNULL( CAST( src.Src_Employee_DOB AS VARCHAR), ''~!@#$%^&*()+'') <> IFNULL( CAST( tgt.Src_Employee_DOB AS VARCHAR), ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_Home_Phone, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Home_Phone, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_Cell_Phone, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Cell_Phone, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_Work_Phone, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Work_Phone, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_Personal_Email, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Personal_Email, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_Work_Email, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Work_Email, ''~!@#$%^&*()+''))
+ THEN UPDATE SET  tgt.Employee_First_Name = src.Employee_First_Name,
+                  tgt.Employee_Last_Name = src.Employee_Last_Name,
+                  tgt.Src_Employee_SSN = src.Src_Employee_SSN,
+                  tgt.Src_Employee_DOB = src.Src_Employee_DOB,
+                  tgt.Src_Employee_Home_Phone = src.Src_Employee_Home_Phone,
+                  tgt.Src_Employee_Cell_Phone = src.Src_Employee_Cell_Phone,
+                  tgt.Src_Employee_Work_Phone = src.Src_Employee_Work_Phone,
+                  tgt.Src_Employee_Personal_Email = src.Src_Employee_Personal_Email,
+                  tgt.Src_Employee_Work_Email = src.Src_Employee_Work_Email,
+                  tgt.Src_Employee_Min_Activity_Date = src.Src_Employee_Min_Activity_Date,
+                  tgt.Src_Employee_Max_Activity_Date = src.Src_Employee_Max_Activity_Date,
+                  tgt.Src_Employee_DOB_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_SSN_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_Home_Phone_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_Cell_Phone_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_Work_Phone_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_Personal_Email_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_Work_Email_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.ETL_Task_Key = src.ETL_Task_Key,
+                  tgt.ETL_Last_Updated_Date = src.ETL_Last_Updated_Date,
+                  tgt.ETL_Last_Updated_By = src.ETL_Last_Updated_By
+WHEN MATCHED AND( IFNULL( src.Src_Employee_Address, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Address, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_City, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_City, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_State_Code, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_State_Code, ''~!@#$%^&*()+'')
+              OR  IFNULL( src.Src_Employee_Zip, ''~!@#$%^&*()+'') <> IFNULL( tgt.Src_Employee_Zip, ''~!@#$%^&*()+''))
+  THEN UPDATE SET tgt.Src_Employee_Address = src.Src_Employee_Address,
+                  tgt.Src_Employee_City = src.Src_Employee_City,
+                  tgt.Src_Employee_State_Code = src.Src_Employee_State_Code,
+                  tgt.Src_Employee_Zip = src.Src_Employee_Zip,
+                  tgt.Src_Employee_Address_Processed_Flag = CAST( FALSE AS BOOLEAN),
+                  tgt.Src_Employee_Address_Successfully_Cleansed_Flag = CAST( FALSE AS BOOLEAN)
+WHEN MATCHED AND (IFNULL( src.Src_Employee_Min_Activity_Date, ''1000-01-01'') <> IFNULL( tgt.Src_Employee_Min_Activity_Date, ''1000-01-01'')
+              OR  IFNULL( src.Src_Employee_Max_Activity_Date, ''1000-01-01'') <> IFNULL( tgt.Src_Employee_Max_Activity_Date, ''1000-01-01''))
+ THEN UPDATE SET  tgt.Src_Employee_Min_Activity_Date = src.Src_Employee_Min_Activity_Date,
+                  tgt.Src_Employee_Max_Activity_Date = src.Src_Employee_Max_Activity_Date,
+                  tgt.ETL_Task_Key = src.ETL_Task_Key,
+                  tgt.ETL_Last_Updated_Date = src.ETL_Last_Updated_Date,
+                  tgt.ETL_Last_Updated_By = src.ETL_Last_Updated_By
+WHEN NOT MATCHED THEN INSERT
+(Source_System_ID, System_Code, Employee_ID, Employee_First_Name, Employee_Last_Name, 
+SRC_Employee_ADDRESS, SRC_Employee_CITY, SRC_Employee_STATE_CODE, SRC_Employee_ZIP, 
+Src_Employee_SSN, Src_Employee_DOB, 
+Src_Employee_Home_Phone, Src_Employee_Cell_Phone, Src_Employee_Work_Phone, Src_Employee_Personal_Email, Src_Employee_Work_Email,
+SRC_Employee_MIN_ACTIVITY_DATE, SRC_Employee_MAX_ACTIVITY_DATE, 
+SRC_Employee_ADDRESS_PROCESSED_FLAG, SRC_Employee_ADDRESS_SUCCESSFULLY_CLEANSED_FLAG, 
+Src_Employee_DOB_Successfully_Cleansed_Flag, Src_Employee_SSN_Successfully_Cleansed_Flag, 
+Src_Employee_Home_Phone_Successfully_Cleansed_Flag, Src_Employee_Cell_Phone_Successfully_Cleansed_Flag, Src_Employee_Work_Phone_Successfully_Cleansed_Flag, 
+Src_Employee_Personal_Email_Successfully_Cleansed_Flag, Src_Employee_Work_Email_Successfully_Cleansed_Flag,
+ETL_TASK_KEY, ETL_INSERTED_TASK_KEY, ETL_INSERTED_DATE, ETL_INSERTED_BY, ETL_LAST_UPDATED_DATE, ETL_LAST_UPDATED_BY)
+VALUES
+(src.Source_System_ID, src.System_Code, src.Employee_ID, src.Employee_First_Name, src.Employee_Last_Name, 
+src.SRC_Employee_ADDRESS, src.SRC_Employee_CITY, src.SRC_Employee_STATE_CODE, src.SRC_Employee_ZIP, 
+src.Src_Employee_SSN, src.Src_Employee_DOB, 
+src.Src_Employee_Home_Phone, src.Src_Employee_Cell_Phone, src.Src_Employee_Work_Phone, 
+src.Src_Employee_Personal_Email, src.Src_Employee_Work_Email,
+src.SRC_Employee_MIN_ACTIVITY_DATE, src.SRC_Employee_MAX_ACTIVITY_DATE, 
+src.SRC_Employee_ADDRESS_PROCESSED_FLAG, src.SRC_Employee_ADDRESS_SUCCESSFULLY_CLEANSED_FLAG, 
+src.Src_Employee_DOB_Successfully_Cleansed_Flag, src.Src_Employee_SSN_Successfully_Cleansed_Flag, 
+src.Src_Employee_Home_Phone_Successfully_Cleansed_Flag, src.Src_Employee_Cell_Phone_Successfully_Cleansed_Flag, src.Src_Employee_Work_Phone_Successfully_Cleansed_Flag, 
+src.Src_Employee_Personal_Email_Successfully_Cleansed_Flag, src.Src_Employee_Work_Email_Successfully_Cleansed_Flag,
+src.ETL_TASK_KEY, src.ETL_INSERTED_TASK_KEY, src.ETL_INSERTED_DATE, src.ETL_INSERTED_BY, src.ETL_LAST_UPDATED_DATE, src.ETL_LAST_UPDATED_BY);
+
+ SELECT CONCAT(''Message : '',"number of rows inserted",'' Rows Inserted.'') into :return_result FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+
+    return return_result;
+END;
+    
+ EOT
+}
+

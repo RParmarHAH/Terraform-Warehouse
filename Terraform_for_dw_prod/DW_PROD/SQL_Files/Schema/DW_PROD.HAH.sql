@@ -1,0 +1,6 @@
+DATABASE_NAME = DW_PROD
+SCHEMA_NAME = HAH
+IS_TRANSIENT = NO
+IS_MANAGED_ACCESS = NO
+RETENTION_TIME = 1
+COMMENT = Primary schema for data warehouse tables

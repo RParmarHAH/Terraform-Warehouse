@@ -1,0 +1,1 @@
+create or replace sequence DISC_PROD.AXXESS.TESTDG_2 start with 8659 increment by 1 order;

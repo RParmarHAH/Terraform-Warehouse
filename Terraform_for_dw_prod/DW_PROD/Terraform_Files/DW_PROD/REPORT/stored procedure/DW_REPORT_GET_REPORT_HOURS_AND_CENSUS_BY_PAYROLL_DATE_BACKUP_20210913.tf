@@ -1,0 +1,96 @@
+resource "snowflake_procedure" "DW_REPORT_GET_REPORT_HOURS_AND_CENSUS_BY_PAYROLL_DATE_BACKUP_20210913" {
+	name ="GET_REPORT_HOURS_AND_CENSUS_BY_PAYROLL_DATE_BACKUP_20210913"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "REPORT"
+	language  = "JAVASCRIPT"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_START"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_END"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+        var sql = `
+    INSERT OVERWRITE INTO REPORT.HOURS_AND_CENSUS_BY_PAYROLL_DATE
+WITH DATES AS (
+		SELECT FIRST_DAY_OF_MONTH, PERIOD_NAME
+		FROM REPORT.VW_EXECUTIVE_OPERATIONS_EXCELLENCE_UTILIZATION_DIM_DATE
+	), CONTRACTS AS (
+		SELECT CONTRACT_KEY, 
+			CONTRACT_CODE, 
+			CONTRACT_NAME, 
+			REVENUE_CATEGORY,
+			INCLUDE_FOR_EXEC_OPS_CLIENTS AS INCLUDE_FOR_CLIENTS,
+			INCLUDE_FOR_EXEC_OPS_HOURS AS INCLUDE_FOR_HOURS
+		FROM REPORT.VW_DASHBOARD_CONTRACTS
+		WHERE INCLUDE_FOR_EXEC_OPS_CLIENTS = TRUE OR INCLUDE_FOR_EXEC_OPS_HOURS = TRUE
+	),
+    VISIT_DATA AS
+    (
+        SELECT DISTINCT 
+        VISIT.PAYROLL_DATE, 
+        VISIT.CLIENT_KEY, 
+        VISIT.CONTRACT_KEY, 
+		FIRST_VALUE(VISIT.BRANCH_KEY) OVER(PARTITION BY DATE_TRUNC(MONTH, VISIT.PAYROLL_DATE), VISIT.CLIENT_KEY, VISIT.CONTRACT_KEY ORDER BY MAX(VISIT.PAYROLL_DATE) DESC, NVL(SUM(VISIT.HOURS_SERVED), 0) DESC) BRANCH_KEY,
+		SUM(VISIT.HOURS_SERVED) AS HOURS_SERVED
+	    FROM HAH.FACT_VISIT VISIT
+	    WHERE NVL(VISIT.STATUS_CODE, ''02'') IN (''02'', ''03'', ''04'', ''05'') -- Only confirmed visits
+	    GROUP BY VISIT.PAYROLL_DATE, 
+		VISIT.CLIENT_KEY, 
+		VISIT.CONTRACT_KEY,
+		BRANCH_KEY 
+    ) 
+      SELECT 
+            DATA.PAYROLL_DATE,
+			DATA.BRANCH_KEY,
+			DATA.CLIENT_KEY AS CLIENT_KEY_DATA, 
+			DATA.CONTRACT_KEY,
+			CASE WHEN CONTRACT.INCLUDE_FOR_CLIENTS = 1 THEN DATA.CLIENT_KEY END CLIENT_KEY,
+			NVL(CASE WHEN CONTRACT.INCLUDE_FOR_HOURS = 1 THEN DATA.HOURS_SERVED END, 0) HOURS_SERVED_ALL,
+			
+        `;    
+             sql += STR_ETL_TASK_KEY;
+             sql +=  
+             ` AS ETL_TASK_KEY,
+        
+			
+        `;    
+             sql += STR_ETL_TASK_KEY;
+             sql +=  
+             ` AS ETL_INSERTED_TASK_KEY,
+        
+			convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+			CURRENT_USER as ETL_INSERTED_BY ,
+			convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+			CURRENT_USER as ETL_LAST_UPDATED_BY,
+			0 as ETL_DELETED_FLAG
+            FROM VISIT_DATA AS DATA
+		JOIN CONTRACTS CONTRACT
+			ON CONTRACT.CONTRACT_KEY = DATA.CONTRACT_KEY     
+		WHERE NVL(DATA.HOURS_SERVED, 0) > 0 
+        AND PAYROLL_DATE >= ''2019-08-01'' and PAYROLL_DATE<= CURRENT_DATE;`;
+          try {
+                snowflake.execute (
+                    {sqlText: sql}
+                    );
+                return "Succeeded.";   // Return a success/error indicator.
+                }
+            catch (err)  {
+                return "Failed: " + err;   // Return a success/error indicator.
+                }  
+          
+ EOT
+}
+

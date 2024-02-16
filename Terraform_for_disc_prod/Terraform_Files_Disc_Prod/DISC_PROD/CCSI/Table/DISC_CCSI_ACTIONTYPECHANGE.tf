@@ -1,0 +1,184 @@
+resource "snowflake_table" "DISC_CCSI_ACTIONTYPECHANGE" {
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "CCSI"
+	name = "ACTIONTYPECHANGE"
+	change_tracking = false
+	comment = " 
+    --*****************************************************************************************************************************
+
+    -- NAME :  DISC_PROD.CCSI.ACTIONTYPECHANGE
+
+    -- Purpose : Discovery Data Population
+
+    -- Project : CCSI
+
+    -- Source Data update Frequency : 60 min
+
+    --
+
+    -- DEVELOPMENT LOG:
+
+    -- DATE        AUTHOR                NOTES:
+
+    -- ----------  -------------------   -----------------------------------------------------------------------------------------------
+
+    -- 2024-02-14  Terraform            Initial Development(from Terraform GitHub Action Deployment)
+
+    --*****************************************************************************************************************************
+            "
+
+column {
+	name = "RECORD_NUMBER"
+	type = "NUMBER(38,0)"
+	nullable = true
+}
+
+
+column {
+	name = "OFFICE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "DATE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "TIME"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "USER"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "CLIENTID"
+	type = "VARCHAR(1000)"
+	nullable = true
+}
+
+
+column {
+	name = "COMBINED_NAME"
+	type = "VARCHAR(1000)"
+	nullable = true
+}
+
+
+column {
+	name = "OLD_ACTIONTYPE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "NEW_ACTIONTYPE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "UPLOADED"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "SERVICE_TYPE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "CREATED_DATE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "CREATED_BY"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "UPDATED_DATE"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "UPDATED_BY"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_TASK_KEY"
+	type = "NUMBER(38,0)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_INSERTED_TASK_KEY"
+	type = "NUMBER(38,0)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_INSERTED_DATE"
+	type = "TIMESTAMP_NTZ(9)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_INSERTED_BY"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_LAST_UPDATED_DATE"
+	type = "TIMESTAMP_NTZ(9)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_LAST_UPDATED_BY"
+	type = "VARCHAR(100)"
+	nullable = true
+}
+
+
+column {
+	name = "ETL_DELETED_FLAG"
+	type = "BOOLEAN"
+	nullable = true
+}
+
+}
+

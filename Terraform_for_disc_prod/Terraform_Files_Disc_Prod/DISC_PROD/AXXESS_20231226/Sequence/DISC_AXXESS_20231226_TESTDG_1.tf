@@ -1,0 +1,9 @@
+resource "snowflake_sequence" "DISC_AXXESS_20231226_TESTDG_1" {
+	name ="TESTDG_1"
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "AXXESS_20231226"
+	start_with = -8
+	increment  = -1
+	order  = true
+}
+

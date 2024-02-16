@@ -1,0 +1,49 @@
+CREATE OR REPLACE PROCEDURE DW_PROD.HAH.GET_STAGE_CCSI_DIM_PARTNER_CONTRACT("STR_ETL_TASK_KEY" VARCHAR(16777216), "STR_CDC_START" VARCHAR(16777216), "STR_CDC_END" VARCHAR(16777216))
+RETURNS VARCHAR(16777216)
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+BEGIN
+    --*****************************************************************************************************************************
+-- NAME:  CCSI_DIM_PARTNER_CONTRACT
+--
+-- PURPOSE: Creates one row per PARTNER AND CONTRACT according to CCSI 
+--
+-- DEVELOPMENT LOG:
+-- DATE        AUTHOR                NOTES:
+-- --------    -------------------   -----------------------------------------------------------------------------------------------
+-- 11/08/23     SANKET JAIN          Initial development
+--*****************************************************************************************************************************
+
+INSERT OVERWRITE INTO STAGE.CCSI_DIM_PARTNER_CONTRACT
+
+SELECT DISTINCT MD5(''CCSI'' || ''-'' || R.CONTRACT_NO || ''-'' || ''CCSI'') AS PARTNER_CONTRACT_KEY
+		, 8 AS SOURCE_SYSTEM_ID
+		, ''CCSI'' AS SYSTEM_CODE
+		, 8 AS ORIGINAL_SOURCE_SYSTEM_ID
+		, ''CCSI'' AS ORIGINAL_SYSTEM_CODE
+        ,''IL'' AS STATE
+		, MD5(''CCSI'' || ''-'' || PCM.PAYOR_ID || ''-'' || ''CCSI'') AS PARTNER_KEY
+		, PCM.PAYOR_ID  AS PARTNER_CODE
+        , PCM.PAYOR_NAME  AS PARTNER_NAME
+		, R.CONTRACT_NO AS CONTRACT_CODE
+        , R.CONTRACT_NO AS CONTRACT_NAME
+		, TRUE  AS ACTIVE_FLAG
+		, ''1990-01-01'' AS START_DATE
+		, ''9999-12-31''END_DATE 
+		, :STR_ETL_TASK_KEY AS ETL_TASK_KEY
+	 	, :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY
+	    , Convert_timezone(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_INSERTED_DATE
+		, CURRENT_USER AS ETL_INSERTED_BY
+		, Convert_timezone(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_LAST_UPDATED_DATE
+		, CURRENT_USER AS ETL_LAST_UPDATED_BY
+	 	, 0 AS ETL_DELETED_FLAG
+FROM DISC_PROD.CCSI.RAWVRFP  R
+LEFT JOIN DISC_PROD.PAYOR_CONTRACT_UI.PAYOR_CONTRACT_MAPPING PCM
+		ON  PCM.ORIGINAL_SOURCE_SYSTEM_ID = 8
+		AND UPPER(R.CONTRACT_NO) = PCM.CONTRACT_CODE
+WHERE R.CONTRACT_NO IS NOT NULL;
+
+return ''SUCCESS'';
+END;
+';

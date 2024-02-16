@@ -1,0 +1,35 @@
+resource "snowflake_view" "DISC_FILEPRO_VW_EVV_NOTES" {
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "FILEPRO"
+	name = "VW_EVV_NOTES"
+	statement = <<-SQL
+	 SMARTPHONE",
+	"CALLER ID",
+	"SHARED CODE"
+) as 
+SELECT SUBSTR(T.$1,1,4)||'-'||SUBSTR(T.$1,5,2)||'-'||SUBSTR(T.$1,7,2) AS DATE,
+T.$2 AS TIME, 
+T.$3 AS CLIENT,
+T.$4 AS "WORKER #",
+T.$5 AS "WORKER NAME",
+T.$6 AS "NOTE 1",
+T.$7 AS "NOTE 2",
+T.$8 AS "NOTE 3",
+T.$9 AS "NOTE 4",
+T.$10 AS "FOLLOW-UP", 
+T.$11 AS DESK,
+T.$12 AS PRINTED,
+T.$13 AS "PUNCH DATE",
+T.$14 AS "PUNCH TIME",
+T.$15 AS "PUNCH IN/OUT",
+T.$16 AS "HAC HAS SMARTPHONE",
+T.$17 AS "CALLER ID",
+T.$18 AS "SHARED CODE"
+FROM 
+@DISC_${var.SF_ENVIRONMENT}.STAGE.AZSTAGEPROD/FilePro/EVVnotes
+(file_format => DISC_${var.SF_ENVIRONMENT}.PUBLIC.CSV_FORMAT ) AS T;
+SQL
+	or_replace = true 
+	is_secure = false 
+}
+

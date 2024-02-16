@@ -1,0 +1,14 @@
+resource "snowflake_view" "DW_STAGE_VW_CURRENT_MATRIXCARE_DIM_SERVICES" {
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "STAGE"
+	name = "VW_CURRENT_MATRIXCARE_DIM_SERVICES"
+	statement = <<-SQL
+	 SELECT 
+MD5('MATRIXCARE' || '-' || SVCC_ID || '-' || 'MATRIXCARE') AS SERVICE_KEY
+FROM DISC_${var.SF_ENVIRONMENT}.MATRIXCARE.STVHC_T_SERVICECODE
+WHERE ETL_LAST_UPDATED_DATE >= '1900-01-01';
+SQL
+	or_replace = true 
+	is_secure = false 
+}
+

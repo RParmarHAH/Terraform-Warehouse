@@ -1,0 +1,35 @@
+resource "snowflake_procedure" "DISC_HHAEXCHANGEEDISON_GET_CAREGIVERRATES" {
+	name ="GET_CAREGIVERRATES"
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "HHAEXCHANGEEDISON"
+	language  = "SQL"
+
+	arguments {
+		name = "TASKKEY"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+--*****************************************************************************************************************************
+-- NAME:  DISC_${var.SF_ENVIRONMENT}.HHAEXCHANGEEDISON.GET_CaregiverRates 
+--
+-- PURPOSE: To Load Discovery Layer Tables
+--
+-- DEVELOPMENT LOG:
+-- DATE        		AUTHOR                	NOTES:
+-- ----------  		-------------------   	-----------------------------------------------------------------------------------------------
+-- 2023-11-20 		Ravi Suthar            	Initial Development
+--*****************************************************************************************************************************
+
+BEGIN 
+    --TargetSQL
+    INSERT OVERWRITE INTO DISC_${var.SF_ENVIRONMENT}.HHAEXCHANGEEDISON.CaregiverRates (SELECT t.$1 AS AgencyID, t.$2 AS CaregiverRateID, t.$3 AS CaregiverID, t.$4 AS FromDate, t.$5 AS ToDate, t.$6 AS Hourly, t.$7 AS Daily, t.$8 AS Visit, t.$9 AS PatientID, t.$10 AS AdmissionID, t.$11 AS PatientName, t.$12 AS DisciplineID, t.$13 AS Discipline, t.$14 AS PayrateID, t.$15 AS PayRateText, t.$16 AS CreatedDate, t.$17 AS Status, t.$18 AS SYS_CHANGE_VERSION, t.$19 AS SYS_CHANGE_OPERATION, :TaskKey AS ETL_TASK_KEY, :TaskKey AS ETL_INSERTED_TASK_KEY, current_timestamp::TIMESTAMP_NTZ(9) AS ETL_INSERTED_DATE, current_user() AS ETL_INSERTED_BY, current_timestamp::TIMESTAMP_NTZ(9) AS ETL_LAST_UPDATED_DATE, current_user() AS ETL_LAST_UPDATED_BY, DECODE(t.$19,''D'', True, False) AS ETL_DELETED_FLAG FROM @DISC_${var.SF_ENVIRONMENT}.STAGE.AWSAZSTAGEPROD/To_Be_Processed/EDISON/ (file_format => DISC_${var.SF_ENVIRONMENT}.STAGE.MY_CSV_FORMAT,PATTERN => ''.*edisonhomedb_dbo_CaregiverRates.*[.]csv.gz'')T);
+
+    return ''Success'';
+END;
+
+ EOT
+}
+

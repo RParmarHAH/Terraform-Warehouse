@@ -1,0 +1,72 @@
+resource "snowflake_procedure" "DW_HAH_GET_STAGE_DATAFLEXSYNCDATA_DIM_SERVICES" {
+	name ="GET_STAGE_DATAFLEXSYNCDATA_DIM_SERVICES"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "HAH"
+	language  = "SQL"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_START"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_END"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+BEGIN 
+--*****************************************************************************************************************************
+-- NAME:  DATAFLEX SYNC DATA DIM SERVICES 
+--
+-- PURPOSE: Populates Stage DIM SERVICES  for DATAFLEXSYNCDATA
+--
+--
+-- Development LOG:
+-- DATE        AUTHOR                NOTES:
+-- --------    -------------------   -----------------------------------------------------------------------------------------------
+-- 05/27/23    SANKET JAIN           Initial version
+--06/26/23     NUTAN JAGNADE         Modified changes in REVENUE_CATEGORY,REVENUE_SUBCATEGORY_NAME,REVENUE_SUBCATEGORY_CODE
+--*****************************************************************************************************************************
+	
+INSERT OVERWRITE INTO STAGE.DATAFLEXSYNCDATA_DIM_SERVICES
+
+SELECT DISTINCT 
+	MD5(TRIM(CON.DBNAME) || ''-'' || TRIM(CON.REVENUESUBCATEGORY) || ''-'' || TRIM(CON.REVENUECATEGORY) || ''-'' || ''DATAFLEXSYNCDATA'') AS SERVICE_KEY,
+	3 AS SOURCE_SYSTEM_ID,
+	TRIM(CON.DBNAME) AS SYSTEM_CODE,          
+	TRIM(CON.REVENUESUBCATEGORY) AS SERVICE_CODE,
+	TRIM(SUBCAT."NAME") AS SERVICE_DESCRIPTION,
+	TRIM(CON.REVENUESUBCATEGORY) AS SERVICE_TYPE,
+	NULL AS SERVICE_RATE_TYPE,
+	TRIM(CON.REVENUECATEGORY) AS REVENUE_CATEGORY,
+	trim(CON.REVENUESUBCATEGORY) AS REVENUE_SUBCATEGORY_CODE,
+	SUBCAT.NAME AS REVENUE_SUBCATEGORY_NAME,
+	TRUE AS ACTIVE_FLAG,
+ -- ETL Fields
+    -1 AS ETL_TASK_KEY,
+    -1 AS ETL_INSERTED_TASK_KEY,
+	CONVERT_TIMEZONE(''UTC'',CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_INSERTED_DATE,
+	CURRENT_USER AS ETL_INSERTED_BY,
+	CONVERT_TIMEZONE(''UTC'',CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_LAST_UPDATED_DATE,
+	CURRENT_USER AS ETL_LAST_UPDATED_BY,
+	0 AS ETL_DELETED_FLAG
+FROM DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.DFCONTRACTS CON
+LEFT JOIN
+	DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.DFREVENUESUBCATEGORIES SUBCAT 
+	ON TRIM(CON.DBNAME) = TRIM(SUBCAT.DBNAME)
+	AND TRIM(CON.REVENUESUBCATEGORY) = TRIM(SUBCAT.CODE);
+
+return ''SUCCESS'';
+END;
+
+ EOT
+}
+

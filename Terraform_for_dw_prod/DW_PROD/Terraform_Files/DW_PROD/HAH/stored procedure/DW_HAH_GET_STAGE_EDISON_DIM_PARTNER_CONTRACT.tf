@@ -1,0 +1,88 @@
+resource "snowflake_procedure" "DW_HAH_GET_STAGE_EDISON_DIM_PARTNER_CONTRACT" {
+	name ="GET_STAGE_EDISON_DIM_PARTNER_CONTRACT"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "HAH"
+	language  = "SQL"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_START"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_END"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+BEGIN
+    --*****************************************************************************************************************************
+-- NAME:  EDISON_DIM_PARTNER
+--
+-- PURPOSE: Creates one row per PARTNER according to EDISON 
+--
+-- DEVELOPMENT LOG:
+-- DATE        AUTHOR                NOTES:
+-- --------    -------------------   -----------------------------------------------------------------------------------------------
+-- 03/22/23     SANKET JAIN          Initial development
+--*****************************************************************************************************************************
+
+INSERT OVERWRITE INTO STAGE.EDISON_DIM_PARTNER_CONTRACT
+
+WITH  PARTNER AS 
+(
+	SELECT MD5(''EDISON'' || ''-'' ||  NVL(PR.PAYERID,-1) || ''-'' || COALESCE(PR.CONTRACTID,PR.PAYERID) || ''-'' || ''HHAEXCHANGE'') AS PARTNER_CONTRACT_KEY
+		, 17 AS SOURCE_SYSTEM_ID
+		, ''EDISON'' AS SYSTEM_CODE
+        , ''NY'' AS STATE
+		, MD5(''EDISON'' || ''-'' || PR.PAYERID || ''-'' || ''HHAEXCHANGE'') AS PARTNER_KEY                                                                                     
+		, COALESCE(PR.PAYERID,PR.CONTRACTID)  AS PARTNER_CODE
+		, PR.PAYERNAME AS PARTNER_NAME 
+		, COALESCE(PR.CONTRACTID,PR.PAYERID) AS CONTRACT_CODE
+		, PR.PAYERNAME AS CONTRACT_NAME
+		, PR.STATUS  AS ACTIVE_FLAG
+		FROM DISC_${var.SF_ENVIRONMENT}.HHAEXCHANGEEDISON.PAYER_REPL PR
+)--SELECT * FROM partner;
+,ADDITIONAL_PARTNER AS (
+	SELECT * FROM PARTNER
+	UNION ALL
+  	SELECT DISTINCT MD5(''EDISON'' || ''-'' ||  S.CONTRACTID || ''-'' || S.CONTRACTID || ''-'' || ''HHAEXCHANGE'') AS PARTNER_CONTRACT_KEY
+		, 17 AS SOURCE_SYSTEM_ID
+		, ''EDISON'' AS SYSTEM_CODE
+        ,''NY'' AS STATE
+		, MD5(''EDISON'' || ''-'' || S.CONTRACTID || ''-'' || ''HHAEXCHANGE'') AS PARTNER_KEY
+		, S.CONTRACTID  AS PARTNER_CODE
+		, CASE WHEN S.CONTRACTID IN (18121) THEN regexp_replace(S.CONTRACTNAME,''.....$'','''') ELSE S.CONTRACTNAME END AS PARTNER_NAME 
+		, S.CONTRACTID AS CONTRACT_CODE
+		, S.CONTRACTNAME AS CONTRACT_NAME
+		, CASE WHEN S.STATUS =''Active'' THEN TRUE ELSE FALSE END AS ACTIVE_FLAG
+FROM DISC_${var.SF_ENVIRONMENT}.HHAEXCHANGEEDISON.SERVICECODES S  WHERE PARTNER_KEY NOT IN 
+(SELECT PARTNER_KEY FROM PARTNER) --AND S.CONTRACTID NOT IN (SELECT CONTRACTID FROM DISC_${var.SF_ENVIRONMENT}.HHAEXCHANGEEDISON.PAYER_REPL)
+QUALIFY ROW_NUMBER() OVER (PARTITION BY PARTNER_CODE ORDER BY ACTIVE_FLAG desc ) = 1
+)--SELECT * FROM ADDITIONAL_PARTNER;
+SELECT DISTINCT *
+		, ''1990-01-01'' AS START_DATE
+		, ''9999-12-31''END_DATE 
+		, :STR_ETL_TASK_KEY AS ETL_TASK_KEY
+	 	, :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY
+	    , Convert_timezone(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_INSERTED_DATE
+		, CURRENT_USER AS ETL_INSERTED_BY
+		, Convert_timezone(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_LAST_UPDATED_DATE
+		, CURRENT_USER AS ETL_LAST_UPDATED_BY
+	 	, 0 AS ETL_DELETED_FLAG
+FROM ADDITIONAL_PARTNER;
+
+
+return ''SUCCESS'';
+END;
+
+ EOT
+}
+

@@ -1,0 +1,4 @@
+DATABASE_NAME = COVID19_FROM_APTITIVE
+IS_TRANSIENT = NO
+RETENTION_TIME = 1
+COMMENT = This is covid 19 data from Snowflake marketplace.

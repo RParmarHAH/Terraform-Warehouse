@@ -1,0 +1,36 @@
+resource "snowflake_procedure" "DISC_ALAYACARE_GET_VISIT_CODE" {
+	name ="GET_VISIT_CODE"
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "ALAYACARE"
+	language  = "SQL"
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+DECLARE
+--*****************************************************************************************************************************
+-- NAME:  GET_VISIT_CODE 
+--
+-- PURPOSE: USING THIS SP FOR DISCOVERY TABLE LOAD
+--
+-- DEVELOPMENT LOG:
+-- DATE        		AUTHOR                	NOTES:
+-- ----------  		-------------------   	-----------------------------------------------------------------------------------------------
+-- 2021-11-11		UNKNOWN					INITIAL DEVELOPMENT
+-- 2023-09-05  		RAVI SUTHAR            	MIGRATED JavaScript to SQL
+--*****************************************************************************************************************************
+    return_result varchar(1000);
+BEGIN
+	
+    INSERT OVERWRITE INTO ALAYACARE.VISIT_CODE (
+        CANCEL_CODE_ID, CANCEL_CODE, DESCRIPTION, IS_BILLABLE, IS_PAYABLE, TYPE, PROPERTIES_CREATE_TIME, PROPERTIES_TYPE, PROPERTIES_IS_PAYABLE, PROPERTIES_CODE, PROPERTIES_IS_BILLABLE, PROPERTIES_DESCRIPTION, PROPERTIES_IDMASTERACCOUNT, PROPERTIES_UPDATE_TIME, PROPERTIES_OP, PROPERTIES_ID)
+        SELECT CANCEL_CODE_ID AS CANCEL_CODE_ID, CANCEL_CODE AS CANCEL_CODE, DESCRIPTION AS DESCRIPTION, IS_BILLABLE AS IS_BILLABLE, IS_PAYABLE AS IS_PAYABLE, TYPE AS TYPE, PROPERTIES:create_time::STRING AS PROPERTIES_CREATE_TIME, PROPERTIES:type::STRING AS PROPERTIES_TYPE, PROPERTIES:is_payable::STRING AS PROPERTIES_IS_PAYABLE, PROPERTIES:code::STRING AS PROPERTIES_CODE, PROPERTIES:is_billable::STRING AS PROPERTIES_IS_BILLABLE, PROPERTIES:description::STRING AS PROPERTIES_DESCRIPTION, PROPERTIES:idmasteraccount::STRING AS PROPERTIES_IDMASTERACCOUNT, PROPERTIES:update_time::STRING AS PROPERTIES_UPDATE_TIME, PROPERTIES:Op::STRING AS PROPERTIES_OP, PROPERTIES:id::STRING AS PROPERTIES_ID 
+        FROM ALAYACARE_${var.SF_ENVIRONMENT}UCTION."5C3EE5FE-45A5-4DA7-A35B-BD7CDAFE3548".SHARED_VISIT_CODE;
+
+	SELECT CONCAT(''Message : '',"number of rows inserted",'' Rows Inserted.'') into :return_result FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+	return return_result;
+END;
+
+ EOT
+}
+

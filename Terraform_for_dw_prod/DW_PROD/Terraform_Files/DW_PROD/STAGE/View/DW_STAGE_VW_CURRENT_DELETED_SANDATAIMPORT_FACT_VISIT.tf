@@ -1,0 +1,78 @@
+resource "snowflake_view" "DW_STAGE_VW_CURRENT_DELETED_SANDATAIMPORT_FACT_VISIT" {
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "STAGE"
+	name = "VW_CURRENT_DELETED_SANDATAIMPORT_FACT_VISIT"
+	statement = <<-SQL
+	 WITH avg_bill_rate as (
+	SELECT agencyid,admissionid,avg(rate * IFF(UNITTYPE = '05', 4, 1)) as BILL_RATE 
+	FROM DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_SCHEDULESCLIENTS
+	GROUP BY agencyid,admissionid)
+SELECT  
+
+CASE WHEN SV.SERVICEID IN ('CARECO','VBPCG') 
+		THEN MD5('CC_'||SV.AGENCYID || '-' || SV.SCHEDULEID || '-' || 'SANDATAIMPORT') 
+		ELSE MD5(SV.AGENCYID || '-' || SV.SCHEDULEID || '-' || 'SANDATAIMPORT')
+		END AS VISIT_KEY
+		
+FROM DISC_${var.SF_ENVIRONMENT}.BI_REPOSITORY.HIST_SANDATAVISITS SV
+LEFT JOIN DISC_${var.SF_ENVIRONMENT}.BI_REPOSITORY.EXTERNALIDS EID
+	ON EID.DBNAME = 'PA' AND EID.TYP = 'L' AND EID.EXTID = SV.LOCATIONID 
+LEFT JOIN HAH.DIM_EMPLOYEE E
+	ON E.SYSTEM_CODE = SV.AGENCYID AND SV.SCHEDULEDATE >= E.EFFECTIVE_FROM_DATE AND SV.SCHEDULEDATE < E.EFFECTIVE_TO_DATE  AND E.EMPLOYEE_ID = CAST(SV.STAFFAGENCYID AS INT)::STRING
+LEFT JOIN DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_CLIENTADMISSIONS CAD
+	ON CAD.AGENCYID = SV.AGENCYID AND CAD.ADMISSIONID = SV.ADMISSIONID 
+LEFT JOIN (SELECT AGENCYID,scheduleid,admissionid,avg(rate * IFF(UNITTYPE = '05', 4, 1)) as bill_rate
+ from DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_SCHEDULESCLIENTS 
+ group by AGENCYID,scheduleid,admissionid) ca on
+SV.agencyid = ca.agencyid and SV.scheduleid = ca.scheduleid
+and SV.admissionid = ca.admissionid 
+LEFT JOIN avg_bill_rate avg_bill_rate_ca on
+SV.agencyid = avg_bill_rate_ca.agencyid 
+and SV.admissionid = avg_bill_rate_ca.admissionid 
+WHERE SV.AGENCYID = '8485' AND NVL(SV.STAFFAGENCYID,'') <> '' AND SV.CLIENTID IS NOT NULL
+	AND NVL(SV.ADMISSIONTYPE, '') <> '' AND LEN(NVL(STATUS,'')) <= 2 -- Exclude (7) bad data records
+	AND SV.ETL_DELETED_FLAG = TRUE
+	AND CAST(SV.ETL_LAST_UPDATED_DATE AS DATE) IN (SELECT CAST(MAX(ETL_LAST_UPDATED_DATE) AS DATE) FROM DISC_${var.SF_ENVIRONMENT}.BI_REPOSITORY.HIST_SANDATAVISITS)
+UNION
+SELECT
+		 
+		
+		CASE WHEN F.SERVICEID IN ('CARECO','VBPCG') 
+		THEN MD5('CC_'||f.agencyID || '-' || f.scheduleid || '-' || 'SANDATAIMPORT')
+		ELSE MD5(f.agencyID || '-' || f.scheduleid || '-' || 'SANDATAIMPORT') END  AS VISIT_KEY
+		
+FROM DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.HIST_SANDATA_VISITS f
+LEFT JOIN DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_CLIENTADMISSIONS ClientAdmissions
+    ON ClientAdmissions.agencyID = f.AgencyId
+    AND ClientAdmissions.admissionID = f.AdmissionId
+-- LEFT JOIN DISC_${var.SF_ENVIRONMENT}.BI_Repository.EXTERNALIDS eid
+--     ON f.LocationId = eid.ExtID
+--     AND eid.Typ = 'L'
+LEFT JOIN HAH.DIM_BRANCH AS BRANCH ON BRANCH.SYSTEM_CODE::STRING = f.AGENCYID AND BRANCH.OFFICE_CODE = f.LOCATIONID
+LEFT JOIN DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_SCHEDULES sch ON f.AGENCYID = sch.AGENCYID AND f.SCHEDULEID = sch.SCHEDULEID
+LEFT JOIN (SELECT AGENCYID,avg(try_to_number(unittype)) AS unittype,scheduleid,admissionid,avg(rate) as bill_rate
+ from DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.SANDATA_SCHEDULESCLIENTS 
+ group by AGENCYID,scheduleid,admissionid) ca ON
+f.agencyid = ca.agencyid and f.scheduleid = ca.scheduleid
+and f.admissionid = ca.admissionid 
+LEFT JOIN avg_bill_rate avg_bill_rate_ca on
+f.agencyid = avg_bill_rate_ca.agencyid 
+and f.admissionid = avg_bill_rate_ca.admissionid 
+LEFT JOIN HAH.DIM_EMPLOYEE e
+	ON f.STAFFAGENCYID = e.EMPLOYEE_ID
+	AND e.SYSTEM_CODE = nvl(f.agencyID,'S')
+    AND f.Date >= e.EFFECTIVE_FROM_DATE
+    AND f.Date < e.EFFECTIVE_TO_DATE
+WHERE f.agencyID = 8485 --and f.ADJUSTEDTIMEOUT IS NOT NULL
+AND (f.ETL_LAST_UPDATED_DATE >= '1900-01-01'
+	OR sch.ETL_LAST_UPDATED_DATE >= '1900-01-01')
+AND f.ETL_DELETED_FLAG = TRUE
+AND CAST(f.ETL_LAST_UPDATED_DATE AS DATE) IN (SELECT CAST(MAX(ETL_LAST_UPDATED_DATE) AS DATE) FROM DISC_${var.SF_ENVIRONMENT}.SANDATAIMPORT.HIST_SANDATA_VISITS)
+AND f.STAFFAGENCYID <> '' --remove test records
+	GROUP BY 1
+	HAVING SUM(f.ADJUSTEDDURATION) > 0;
+SQL
+	or_replace = true 
+	is_secure = false 
+}
+

@@ -1,0 +1,13 @@
+CREATE OR REPLACE PROCEDURE DISC_PROD.PUBLIC.OUTPUT_MESSAGE()
+RETURNS VARCHAR(16777216)
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+DECLARE 
+	TaskName varchar;
+begin
+    
+    TaskName := ''Mitul'';
+    return TaskName;
+end;
+';

@@ -1,0 +1,20 @@
+resource "snowflake_procedure" "DW_HAH_DELETE_STAGE_VIVENTIUM_FACT_PAYROLL" {
+	name ="DELETE_STAGE_VIVENTIUM_FACT_PAYROLL"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "HAH"
+	language  = "SQL"
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+BEGIN
+    DELETE FROM HAH.FACT_PAYROLL WHERE SOURCE_SYSTEM_ID = 34 AND PAYROLL_KEY
+    NOT IN (SELECT PAYROLL_KEY FROM STAGE.VIVENTIUM_FACT_PAYROLL);
+
+ return ''Done'';
+END;
+ 
+
+ EOT
+}
+

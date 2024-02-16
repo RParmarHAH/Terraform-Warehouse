@@ -1,0 +1,1 @@
+create or replace sequence DISC_PROD.WORKDAY.PROTO_BRANCH start with -1 increment by -1 order;

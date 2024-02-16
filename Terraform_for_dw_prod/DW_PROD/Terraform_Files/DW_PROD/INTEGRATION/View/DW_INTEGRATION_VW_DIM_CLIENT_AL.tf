@@ -1,0 +1,14 @@
+resource "snowflake_view" "DW_INTEGRATION_VW_DIM_CLIENT_AL" {
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "INTEGRATION"
+	name = "VW_DIM_CLIENT_AL"
+	statement = <<-SQL
+	 
+select TRIM(CLIENT_KEY) ID,TRIM(CLIENT_NUMBER) CLIENT_NUMBER,TRIM(SYSTEM_CODE) SYSTEM_CODE,TRIM(SOURCE_SYSTEM_ID) SOURCE_SYSTEM_ID,TRIM(CLIENT_PID) CLIENT_PID,TRIM(CLIENT_DOB) CLIENT_DOB,TRIM(CLIENT_FIRST_NAME)CLIENT_FIRST_NAME,TRIM(CLIENT_LAST_NAME) CLIENT_LAST_NAME,TRIM(CLIENT_ADDRESS1) CLIENT_ADDRESS1,TRIM(CLIENT_CITY) CLIENT_CITY,regexp_replace( coalesce(TRIM(CLIENT_HOME_PHONE),TRIM(CLIENT_CELL_PHONE)),'\\\\(|\\\\)|\\\\-|\\\\ ','') CLIENT_HOME_PHONE,TRIM(LINKED_ID_source) LINKED_ID_source ,TRIM(LINKED_ID_match) LINKED_ID_match  from (select CASE WHEN split_part(LINKED_ID::varchar,'-',2) = 'SHC' THEN 'SHC_SAVANNAH'             WHEN split_part(LINKED_ID::varchar,'-',2) = 'AL' THEN 'AL'      
+WHEN split_part(LINKED_ID::varchar,'-',2) = 'IL' THEN 'IL' END          as LINKED_ID_source,   split_part(LINKED_ID::varchar,'-',3) as LINKED_ID_match,      * from DW_${var.SF_ENVIRONMENT}.HAH.DIM_CLIENT       WHERE (SOURCE_SYSTEM_ID =9 AND SYSTEM_CODE ='ALABAMA (3554)')    
+union select system_code as LINKED_ID_source, CLIENT_NUMBER::varchar as LINKED_ID_match,* from DW_${var.SF_ENVIRONMENT}.HAH.DIM_CLIENT WHERE (SOURCE_SYSTEM_ID =3 AND SYSTEM_CODE ='AL'));
+SQL
+	or_replace = true 
+	is_secure = false 
+}
+

@@ -1,0 +1,301 @@
+resource "snowflake_procedure" "DISC_DATAFLEXSYNCDATA_DERIVED_BILLRATE" {
+	name ="DERIVED_BILLRATE"
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "DATAFLEXSYNCDATA"
+	language  = "SQL"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_START"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_END"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+DECLARE
+  RETURN_RESULT VARCHAR(1000);
+BEGIN
+    INSERT OVERWRITE INTO DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.DERIVED_BILLRATE
+WITH CONTRACTS_STAGE AS
+(
+  SELECT 
+			Contracts.DbName,
+			Contracts.ContractCode,
+			Contracts.UseBillCode,
+			Contracts.Billable BillableContract,
+			Contracts.BilledByQuarterHours AS BILLBYQUARTERHOURS,
+			Contracts.BillByHalfHours,
+			Contracts.IsMileage,
+			-- Normalize date/rate columns by chronological order
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.RateEffectiveDate1,
+			Contracts.RateEffectiveDate2) RateEffectiveDate1,
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.RateEffectiveDate2,
+			Contracts.RateEffectiveDate1) RateEffectiveDate2,
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.Rate1,
+			Contracts.Rate2) Rate1,
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.Rate2,
+			Contracts.Rate1) Rate2,
+            Contracts.RateEffectiveDate3,
+            Rate3,
+            Contracts.RateEffectiveDate4,
+            Rate4
+			FROM DISC_${var.SF_ENVIRONMENT}.dataflexsyncdata.dfcontracts Contracts  WHERE billable = TRUE
+),
+OVERHEADRATE AS
+(
+	SELECT 
+			Contracts.DbName,
+			Contracts.ContractCode,
+			Contracts.UseBillCode,
+			Contracts.Billable BillableContract,
+			Contracts.BilledByQuarterHours AS BILLBYQUARTERHOURS,
+			Contracts.BillByHalfHours,
+			Contracts.IsMileage,
+			-- Normalize date/rate columns by chronological order
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.RateEffectiveDate1,
+			Contracts.RateEffectiveDate2) RateEffectiveDate1,
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.RateEffectiveDate2,
+			Contracts.RateEffectiveDate1) RateEffectiveDate2,
+			IFF(NVL(Contracts.RateEffectiveDate1, ''1/1/1900'') > NVL(Contracts.RateEffectiveDate2, ''1/1/1900''),
+			Contracts.OVERHEADRATE1,
+			Contracts.OVERHEADRATE2) OVERHEADRATE1,
+			IFF(NVL(Contracts.RateEffectiveDate1,''1/1/1900'') > NVL(Contracts.RateEffectiveDate2,''1/1/1900''),
+			Contracts.OVERHEADRATE2,
+			Contracts.OVERHEADRATE1) OVERHEADRATE2
+			FROM DISC_${var.SF_ENVIRONMENT}.dataflexsyncdata.dfcontracts Contracts
+            where COALESCE(OVERHEADRATE1,OVERHEADRATE2,0) <> 0
+),
+CONTRACTS AS
+(
+  SELECT * FROM CONTRACTS_STAGE WHERE DBNAME = ''AL'' and USEBILLCODE=FALSE
+  UNION
+  SELECT * FROM CONTRACTS_STAGE WHERE DBNAME <> ''AL''
+),
+CONTRACTS_DFBILLRATES as
+(
+SELECT 
+			DFBILLRATES.DbName,
+			DFBILLRATES.Contract,
+			DFBILLRATES.Billcode,
+			-- "Normalize" columns (first effect_date in column 1, second effect_date in column 2)
+			IFF(NVL(DFBILLRATES.Effect_Date1, ''1/1/1900'') > NVL(DFBILLRATES.Effect_Date2, ''1/1/1900''), Effect_Date1, Effect_Date2) Effect_Date1,
+			IFF(NVL(DFBILLRATES.Effect_Date1, ''1/1/1900'') > NVL(DFBILLRATES.Effect_Date2, ''1/1/1900''), Billrate, Billrate2) Billrate,
+			IFF(NVL(DFBILLRATES.Effect_Date1, ''1/1/1900'') > NVL(DFBILLRATES.Effect_Date2, ''1/1/1900''), Effect_Date2, Effect_Date1) Effect_Date2,
+			IFF(NVL(DFBILLRATES.Effect_Date1, ''1/1/1900'') > NVL(DFBILLRATES.Effect_Date2, ''1/1/1900''), Billrate2, Billrate) Billrate2,
+			DFBILLRATES.CreatedDate,
+			DFBILLRATES.UpdateBatch,
+			DFBILLRATES.UpdatedTime
+		FROM DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.DFBILLRATES 
+        LEFT OUTER JOIN DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.dfcontracts CONTRACTS
+			ON CONTRACTS.DBNAME = DFBILLRATES.DBNAME 
+			AND CONTRACTS.ContractCode = DFBILLRATES.contract
+		WHERE billable = TRUE
+)
+select 
+DBNAME,
+CONTRACTCODE  AS CONTRACT_CODE,
+NULL AS CLIENT_NUMBER,
+NULL AS BILL_CODE,
+CASE WHEN NVL(BillByQuarterHours, 0) = 1 THEN 4
+WHEN NVL(BillByHalfHours, 0) = 1 THEN 2
+ELSE 1 END * RATE1 AS BILL_RATE,
+RATEEFFECTIVEDATE1 as DATE_EFFECTIVE_FROM,
+NULL AS DATE_EFFECT_TO,
+''contract'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+ from CONTRACTS
+where NVL(rate1,0) <> 0
+UNION ALL
+select 
+DBNAME,
+CONTRACTCODE  AS CONTRACT_CODE,
+NULL AS CLIENT_NUMBER,
+NULL AS BILL_CODE,
+CASE WHEN NVL(BillByQuarterHours, 0) = 1 THEN 4
+WHEN NVL(BillByHalfHours, 0) = 1 THEN 2
+ELSE 1 END * RATE2 AS BILL_RATE,
+RATEEFFECTIVEDATE2 as DATE_EFFECTIVE_FROM,
+DATEADD(day,-1,RATEEFFECTIVEDATE1) AS DATE_EFFECT_TO,
+''contract'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,      
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+from CONTRACTS
+where NVL(rate2,0) <> 0
+UNION ALL
+select 
+DBNAME,
+CONTRACTCODE  AS CONTRACT_CODE,
+NULL AS CLIENT_NUMBER,
+NULL AS BILL_CODE,
+CASE WHEN NVL(BillByQuarterHours, 0) = 1 THEN 4
+WHEN NVL(BillByHalfHours, 0) = 1 THEN 2
+ELSE 1 END * RATE3 AS BILL_RATE,
+RATEEFFECTIVEDATE3 as DATE_EFFECTIVE_FROM,
+DATEADD(day,-1,RATEEFFECTIVEDATE2) AS DATE_EFFECT_TO,
+''contract'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+from CONTRACTS
+where NVL(rate3,0) <> 0
+UNION ALL
+select 
+DBNAME,
+CONTRACTCODE  AS CONTRACT_CODE,
+NULL AS CLIENT_NUMBER,
+NULL AS BILL_CODE,
+CASE WHEN NVL(BillByQuarterHours, 0) = 1 THEN 4
+WHEN NVL(BillByHalfHours, 0) = 1 THEN 2
+ELSE 1 END * RATE4 AS BILL_RATE,
+RATEEFFECTIVEDATE4 as DATE_EFFECTIVE_FROM,
+DATEADD(day,-1,RATEEFFECTIVEDATE3) AS DATE_EFFECT_TO,
+''contract'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,      
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+ from CONTRACTS
+where NVL(rate4,0) <> 0
+UNION ALL
+SELECT 
+CONTRACTCLIENT.DBNAME,
+CONTRACTCLIENT.contractcode AS CONTRACT_CODE,
+CONTRACTCLIENT.clientnumber AS CLIENT_NUMBER,
+CONTRACTCLIENT.billcode AS BILL_CODE,
+CASE WHEN NVL(CONTRACTS.BilledByQuarterHours, 0) = 1 THEN 4
+WHEN NVL(CONTRACTS.BillByHalfHours, 0) = 1 THEN 2
+ELSE 1 END * AVG(CONTRACTCLIENT.BILLRATE) AS BILL_RATE,
+''1900-01-01'' AS DATE_EFFECTIVE_FROM,
+NULL AS DATE_EFFECTIVE_TO,
+''clientnumber'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,       
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+FROM DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.DFCLIENTCONTRACTRATES CONTRACTCLIENT
+LEFT OUTER JOIN DISC_${var.SF_ENVIRONMENT}.DATAFLEXSYNCDATA.dfcontracts CONTRACTS
+ON CONTRACTS.DBNAME = CONTRACTCLIENT.DBNAME 
+AND CONTRACTS.contractcode = CONTRACTCLIENT.contractcode
+WHERE CONTRACTCLIENT.BILLRATE <> 0 and  CONTRACTS.billable = TRUE
+group by CONTRACTCLIENT.dbname,CONTRACTCLIENT.clientnumber,CONTRACTCLIENT.contractcode,
+  CONTRACTCLIENT.billcode,CONTRACTS.BilledByQuarterHours,CONTRACTS.BillByHalfHours
+UNION ALL
+SELECT 
+DBNAME,
+CONTRACT as CONTRACT_CODE, 
+NULL as CLIENT_NUMBER,
+BILLCODE AS BILL_CODE,
+BILLRATE AS BILL_RATE,
+EFFECT_DATE1 AS DATE_EFFECTIVE_FROM,
+NULL AS DATE_EFFECTIVE_TO,
+''BILLCODE'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,      
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+FROM CONTRACTS_DFBILLRATES
+WHERE BILLRATE <> 0
+UNION ALL
+SELECT 
+DBNAME,
+CONTRACT as CONTRACT_CODE, 
+NULL as CLIENT_NUMBER,
+BILLCODE AS BILL_CODE,
+BILLRATE2 AS BILL_RATE,
+EFFECT_DATE2 AS DATE_EFFECTIVE_FROM,
+DATEADD(day,-1,EFFECT_DATE1) AS DATE_EFFECTIVE_TO,
+''BILLCODE'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+FROM CONTRACTS_DFBILLRATES
+WHERE BILLRATE2 <> 0
+UNION ALL
+select 
+DBNAME,
+CONTRACTCODE  AS CONTRACT_CODE,
+NULL AS CLIENT_NUMBER,
+NULL AS BILL_CODE,
+OVERHEADRATE1 AS BILL_RATE,
+RATEEFFECTIVEDATE1 as DATE_EFFECTIVE_FROM,
+NULL AS DATE_EFFECT_TO,
+''OVERHEADRATE'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+ from OVERHEADRATE
+where NVL(OVERHEADRATE1,0) <> 0
+UNION ALL
+select 
+DBNAME,
+CONTRACTCODE  AS CONTRACT_CODE,
+NULL AS CLIENT_NUMBER,
+NULL AS BILL_CODE,
+OVERHEADRATE2 AS BILL_RATE,
+RATEEFFECTIVEDATE2 as DATE_EFFECTIVE_FROM,
+DATEADD(day,-1,RATEEFFECTIVEDATE1) AS DATE_EFFECT_TO,
+''OVERHEADRATE'' AS BILL_RATE_LEVEL,
+ :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+ :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+CURRENT_USER as ETL_INSERTED_BY ,
+convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_UPDATED_DATE,
+CURRENT_USER as ETL_LAST_UPDATED_BY,
+0 as ETL_DELETED_FLAG
+ from OVERHEADRATE
+where NVL(OVERHEADRATE2,0) <> 0;
+SELECT CONCAT (''MESSAGE : '',"number of rows inserted",'' Rows Inserted.'') into :return_result FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+	RETURN return_result;
+    END;
+    
+ EOT
+}
+

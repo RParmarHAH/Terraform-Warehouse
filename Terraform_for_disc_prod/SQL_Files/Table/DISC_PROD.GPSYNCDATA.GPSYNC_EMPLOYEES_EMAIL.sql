@@ -1,0 +1,18 @@
+CREATE OR REPLACE TABLE DISC_PROD.GPSYNCDATA.GPSYNC_EMPLOYEES_EMAIL (
+	SSN VARCHAR(16777216),
+	"Employee Number" VARCHAR(16777216),
+	"First Name" VARCHAR(16777216),
+	"Last Name" VARCHAR(16777216),
+	"Home Telephone" VARCHAR(16777216),
+	"Office Telephone" VARCHAR(16777216),
+	"Company Email" VARCHAR(16777216),
+	"Home Email" VARCHAR(16777216),
+	"Original Hire Date" VARCHAR(16777216),
+	"Latest Hire Date" VARCHAR(16777216),
+	"Other Date" VARCHAR(16777216),
+	"Last Termination Date" VARCHAR(16777216),
+	"Termination Reason" VARCHAR(16777216),
+	"Status" VARCHAR(16777216),
+	"Executive Status" VARCHAR(16777216),
+	"Employment Status" VARCHAR(16777216)
+);

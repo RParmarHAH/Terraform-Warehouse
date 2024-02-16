@@ -1,0 +1,135 @@
+resource "snowflake_table" "DISC_ALAYACARE_EMPLOYEE_TERMINATION_NOTE" {
+	database = "DISC_${var.SF_ENVIRONMENT}"
+	schema = "ALAYACARE"
+	name = "EMPLOYEE_TERMINATION_NOTE"
+	change_tracking = false
+	comment = " 
+    --*****************************************************************************************************************************
+
+    -- NAME :  DISC_PROD.ALAYACARE.EMPLOYEE_TERMINATION_NOTE
+
+    -- Purpose : Discovery Data Population
+
+    -- Project : ALAYACARE
+
+    -- Source Data update Frequency : 60 min
+
+    --
+
+    -- DEVELOPMENT LOG:
+
+    -- DATE        AUTHOR                NOTES:
+
+    -- ----------  -------------------   -----------------------------------------------------------------------------------------------
+
+    -- 2024-02-14  Terraform            Initial Development(from Terraform GitHub Action Deployment)
+
+    --*****************************************************************************************************************************
+            "
+
+column {
+	name = "ID"
+	type = "NUMBER(38,0)"
+	nullable = true
+}
+
+
+column {
+	name = "GUID_TO"
+	type = "NUMBER(38,0)"
+	nullable = true
+}
+
+
+column {
+	name = "RN"
+	type = "NUMBER(18,0)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_STATUS"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_UPDATE_USER_ID"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_CREATED_AT"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_ID"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_OP"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_CREATE_USER_ID"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_IS_CLIENT_COORDINATOR_NOTE"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_TYPE"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_BRANCH_ID"
+	type = "NUMBER(38,0)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_UPDATED_AT"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_GUID_TO"
+	type = "VARCHAR(250)"
+	nullable = true
+}
+
+
+column {
+	name = "PROPERTIES_CONTENT"
+	type = "VARCHAR(20000)"
+	nullable = true
+}
+
+}
+

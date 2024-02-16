@@ -1,0 +1,15 @@
+resource "snowflake_view" "DW_STAGE_VW_CURRENT_PAYLOCITY_FACT_PAYROLL" {
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "STAGE"
+	name = "VW_CURRENT_PAYLOCITY_FACT_PAYROLL"
+	statement = <<-SQL
+	 (
+SELECT 
+	MD5(PSS.TRANSACTIONNUMBER || TRIM(PSS.EMPLOYEEID) || PSS.COMPANYID ||'PAYLOCITY') AS PAYROLL_KEY
+FROM DISC_${var.SF_ENVIRONMENT}.PAYLOCITY.PAY_STATEMENT_SUMMARY PSS 
+);
+SQL
+	or_replace = true 
+	is_secure = false 
+}
+

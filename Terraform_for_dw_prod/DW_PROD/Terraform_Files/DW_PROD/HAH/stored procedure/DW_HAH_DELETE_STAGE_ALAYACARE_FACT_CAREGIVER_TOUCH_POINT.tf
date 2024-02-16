@@ -1,0 +1,20 @@
+resource "snowflake_procedure" "DW_HAH_DELETE_STAGE_ALAYACARE_FACT_CAREGIVER_TOUCH_POINT" {
+	name ="DELETE_STAGE_ALAYACARE_FACT_CAREGIVER_TOUCH_POINT"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "HAH"
+	language  = "SQL"
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+DECLARE
+  return_result VARCHAR;
+BEGIN
+DELETE FROM DW_${var.SF_ENVIRONMENT}.HAH.FACT_CAREGIVER_TOUCH_POINT WHERE SOURCE_SYSTEM_ID = 9 AND INTERACTION_KEY  NOT IN (SELECT INTERACTION_KEY FROM DW_${var.SF_ENVIRONMENT}.STAGE.ALAYACARE_FACT_CAREGIVER_TOUCH_POINT);
+SELECT CONCAT(''Message : '',"number of rows deleted", '' Rows Deleted.'') into :return_result FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+return return_result;
+END;
+
+ EOT
+}
+

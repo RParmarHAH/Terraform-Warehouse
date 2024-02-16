@@ -1,0 +1,1 @@
+create or replace sequence DISC_PROD.AXXESS_20231226.SEQ1 start with 1 increment by 1 order;

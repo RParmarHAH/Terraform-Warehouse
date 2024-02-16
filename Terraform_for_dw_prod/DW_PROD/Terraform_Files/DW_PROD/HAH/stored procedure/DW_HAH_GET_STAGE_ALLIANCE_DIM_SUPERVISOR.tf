@@ -1,0 +1,87 @@
+resource "snowflake_procedure" "DW_HAH_GET_STAGE_ALLIANCE_DIM_SUPERVISOR" {
+	name ="GET_STAGE_ALLIANCE_DIM_SUPERVISOR"
+	database = "DW_${var.SF_ENVIRONMENT}"
+	schema = "HAH"
+	language  = "SQL"
+
+	arguments {
+		name = "STR_ETL_TASK_KEY"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_START"
+		type = "VARCHAR(16777216)"
+}	
+
+	arguments {
+		name = "STR_CDC_END"
+		type = "VARCHAR(16777216)"
+}	
+	return_type = "VARCHAR(16777216)"
+	execute_as = "OWNER"
+	statement = <<-EOT
+
+BEGIN
+--*****************************************************************************************************************************
+-- NAME:  ALLIANCE_DIM_SUPERVISOR
+--
+-- PURPOSE: Creates one row per supervisor according to ALLIANCE . Fetch only the Required Data from the Discovery layer
+--
+-- DEVELOPMENT LOG:
+-- DATE        	AUTHOR                	NOTES:
+-- --------    	-------------------   	-----------------------------------------------------------------------------------------------
+-- 07/27/2022   Leo Joy					Initial development
+-- 01/10/2022	Mohit Vaghadiya			Added Unknown Supervisor entry
+--*****************************************************************************************************************************
+
+INSERT OVERWRITE INTO STAGE.ALLIANCE_DIM_SUPERVISOR
+SELECT MD5(''ALLIANCE'' || ''-'' || CM.MASTER_ID || ''-'' || ''GENERATIONS'') AS SUPERVISOR_KEY
+		, CM.CASEMANAGERID AS SUPERVISOR_CODE
+		, ''ALLIANCE'' AS SYSTEM_CODE
+		, 19 AS SOURCE_SYSTEM_ID
+		, CONCAT(CM.FIRSTNAME ,'' '', CM.LASTNAME) AS SUPERVISOR_NAME
+		, NVL(A.STATE, ''MI'') AS SUPERVISOR_STATE_CODE
+		, NULL SUPERVISOR_JOB_CODE
+		, NULL SUPERVISOR_JOB_TITLE
+		, TO_DATE(''1900-01-01'', ''YYYY-MM-DD'') AS EFFECTIVE_FROM_DATE
+		, TO_DATE(''9999-12-31'', ''YYYY-MM-DD'') AS EFFECTIVE_TO_DATE,
+		--ETL Fields
+		:STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+        :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY
+		, CONVERT_TIMEZONE(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_INSERTED_DATE
+    	, CURRENT_USER AS ETL_INSERTED_BY
+    	, CONVERT_TIMEZONE(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_LAST_UPDATED_DATE
+    	, CURRENT_USER AS ETL_LAST_UPDATED_BY
+    	, 0 AS ETL_DELETED_FLAG
+    	, 0 AS ETL_INFERRED_MEMBER_FLAG
+FROM DISC_DEDUPE_${var.SF_ENVIRONMENT}.GENERATIONSALLIANCE.SUPERVISOR_MASTER_LIST  CM
+LEFT JOIN DISC_${var.SF_ENVIRONMENT}.GENERATIONSALLIANCE.AGENCY A
+	ON CM.AGENCYNAME=A.AGENCYNAME
+UNION
+SELECT MD5(''ALLIANCE--1-GENERATIONS'') AS SUPERVISOR_KEY
+		, -1 AS SUPERVISOR_CODE
+		, ''ALLIANCE'' AS SYSTEM_CODE
+		, 19 AS SOURCE_SYSTEM_ID
+		, ''UNKNOWN'' AS SUPERVISOR_NAME
+		, ''MI'' AS SUPERVISOR_STATE_CODE
+		, NULL SUPERVISOR_JOB_CODE
+		, NULL SUPERVISOR_JOB_TITLE
+		, TO_DATE(''1900-01-01'', ''YYYY-MM-DD'') AS EFFECTIVE_FROM_DATE
+		, TO_DATE(''9999-12-31'', ''YYYY-MM-DD'') AS EFFECTIVE_TO_DATE,
+		--ETL Fields
+		:STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+        :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY
+		, CONVERT_TIMEZONE(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_INSERTED_DATE
+    	, CURRENT_USER AS ETL_INSERTED_BY
+    	, CONVERT_TIMEZONE(''UTC'', CURRENT_TIMESTAMP)::TIMESTAMP_NTZ AS ETL_LAST_UPDATED_DATE
+    	, CURRENT_USER AS ETL_LAST_UPDATED_BY
+    	, 0 AS ETL_DELETED_FLAG
+    	, 0 AS ETL_INFERRED_MEMBER_FLAG
+FROM DUAL;
+RETURN ''SUCCESS'';
+END;
+  
+ EOT
+}
+

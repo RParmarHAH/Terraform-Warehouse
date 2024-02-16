@@ -1,0 +1,38 @@
+CREATE OR REPLACE PROCEDURE DW_PROD.HAH.GET_STAGE_AXXESS_DIM_INVOICE_STATUS_MAPPING("STR_ETL_TASK_KEY" VARCHAR(16777216), "STR_CDC_START" VARCHAR(16777216), "STR_CDC_END" VARCHAR(16777216))
+RETURNS VARCHAR(16777216)
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+BEGIN
+--*****************************************************************************************************************************
+-- DEVELOPMENT LOG:
+-- DATE        AUTHOR                NOTES:
+-- --------    -------------------   -----------------------------------------------------------------------------------------------
+-- 21/04/23    Pinkal Panchal        Initial Development
+--*****************************************************************************************************************************
+
+INSERT OVERWRITE INTO DW_PROD.STAGE.AXXESS_DIM_INVOICE_STATUS_MAPPING
+SELECT DISTINCT
+	14 AS SOURCE_SYSTEM_ID,
+	''PRIME'' AS SYSTEM_CODE,
+	CASE WHEN UPPER(TRIM(INVOICE_STATUS)) IN (''PAID'',''OVER PAID'',''FULLY PAID'') THEN ''PAID''
+		WHEN UPPER(TRIM(INVOICE_STATUS)) IN (''PARTIALLY PAID'') THEN ''PARTIAL PAY''
+		WHEN UPPER(TRIM(INVOICE_STATUS)) IN (''BILL SENT'') THEN ''BILLED''
+		WHEN UPPER(TRIM(INVOICE_STATUS)) IN (''CANCELLED'') THEN ''CANCELLED''
+		WHEN UPPER(TRIM(INVOICE_STATUS)) IN (''DENIED'') THEN ''REJECTED''
+		WHEN UPPER(TRIM(INVOICE_STATUS)) IN (''REVERSAL'',''RESUBMIT'',''PENDING'') THEN ''UNKNOWN''
+	ELSE ''UNKNOWN'' END AS DERIVED_INVOICE_STATUS,
+	MD5(SOURCE_SYSTEM_ID || ''-'' || DERIVED_INVOICE_STATUS || ''-'' || SYSTEM_CODE) AS INVOICE_STATUS_KEY
+	,
+       ---- ETL FIELDS
+    :STR_ETL_TASK_KEY AS ETL_TASK_KEY,
+    :STR_ETL_TASK_KEY AS ETL_INSERTED_TASK_KEY,                    
+	convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_INSERTED_DATE,
+	CURRENT_USER as ETL_INSERTED_BY,
+	convert_timezone(''UTC'', CURRENT_TIMESTAMP)::timestamp_ntz as ETL_LAST_UPDATED_DATE,
+	CURRENT_USER as ETL_LAST_UPDATED_BY
+FROM DISC_PROD.AXXESS.AXXESS_INVOICE_STATUS_MAPPING INV
+;
+RETURN ''SUCCESS'';
+END;
+';
