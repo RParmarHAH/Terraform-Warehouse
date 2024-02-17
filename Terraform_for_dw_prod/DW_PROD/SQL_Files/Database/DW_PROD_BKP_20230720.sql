@@ -1,4 +1,0 @@
-DATABASE_NAME = DW_PROD_BKP_20230720
-IS_TRANSIENT = NO
-RETENTION_TIME = 1
-COMMENT = DW 2.0 NY & Unlimited Auth Hours Deployement Release

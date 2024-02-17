@@ -1,4 +1,0 @@
-DATABASE_NAME = ALAYACARE_PROCESSORS_PROD
-IS_TRANSIENT = NO
-RETENTION_TIME = 1
-COMMENT = Production database for Alayacare processors

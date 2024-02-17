@@ -1,4 +1,0 @@
-DATABASE_NAME = DISC_DEV
-IS_TRANSIENT = NO
-RETENTION_TIME = 1
-COMMENT = Discovery Layer for Development

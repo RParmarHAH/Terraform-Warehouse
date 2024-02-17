@@ -1,4 +1,0 @@
-CREATE OR REPLACE FILE FORMAT DW_PROD.PUBLIC.CSV_SURVEY
-	SKIP_HEADER = 5
-COMMENT='File format for Qualtrics survey CSV files. '
-;

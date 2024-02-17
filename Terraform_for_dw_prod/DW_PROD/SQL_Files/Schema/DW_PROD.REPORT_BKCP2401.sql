@@ -1,6 +1,0 @@
-DATABASE_NAME = DW_PROD
-SCHEMA_NAME = REPORT_BKCP2401
-IS_TRANSIENT = NO
-IS_MANAGED_ACCESS = NO
-RETENTION_TIME = 1
-COMMENT = Schema for pre-calculated tables used for reporting
