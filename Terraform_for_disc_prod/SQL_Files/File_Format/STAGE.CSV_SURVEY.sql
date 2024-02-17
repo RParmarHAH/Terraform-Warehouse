@@ -1,4 +1,0 @@
-CREATE OR REPLACE FILE FORMAT DISC_PROD.STAGE.CSV_SURVEY
-	SKIP_HEADER = 5
-COMMENT='File format for Qualtrics survey CSV files. '
-;

@@ -1,1 +1,0 @@
-create or replace sequence DISC_PROD.AXXESS.GETOFFCE_NUMBER start with 8659 increment by 1 order;
