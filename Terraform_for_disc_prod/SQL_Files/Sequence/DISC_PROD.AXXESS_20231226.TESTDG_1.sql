@@ -1,1 +1,0 @@
-create or replace sequence DISC_PROD.AXXESS_20231226.TESTDG_1 start with -8 increment by -1 order;
