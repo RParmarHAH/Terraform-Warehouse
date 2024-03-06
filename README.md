@@ -1,6 +1,6 @@
 # Terraform Warehouse
 
-##  Python Script for Converting SQL Database Objects to Terraform Configurations
+##  Converting SQL DDL to Terraform Resources Using Python Script
 
 This project provides a Python script that can be used to convert SQL database objects, such as tables, views, and stored procedures, to Terraform configurations. This can be useful for automating the provisioning and management of database infrastructure.
 
